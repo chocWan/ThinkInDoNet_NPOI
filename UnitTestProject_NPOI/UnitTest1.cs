@@ -3,7 +3,9 @@ using NPOI.HSSF.UserModel;
 using NPOI.HSSF.Util;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.XSSF.UserModel;
 using System;
+using System.Data;
 using System.IO;
 
 namespace UnitTestProject_NPOI
@@ -188,6 +190,35 @@ namespace UnitTestProject_NPOI
         [TestMethod]
         public void TestCreateMergeRegion()
         {
+            XSSFWorkbook workbook = new XSSFWorkbook();
+            ISheet sheet = workbook.CreateSheet("Sheet1");
+            IRow row = sheet.CreateRow(0);
+            ICell cell = row.CreateCell(0);
+            cell.SetCellValue("合并第一行的第1列到第3列");
+            IFont font = workbook.CreateFont();
+            font.Boldweight = short.MaxValue; 
+            ICellStyle dqCellStyle = workbook.CreateCellStyle();
+            dqCellStyle.Alignment = HorizontalAlignment.Center;
+            dqCellStyle.VerticalAlignment = VerticalAlignment.Center;
+            dqCellStyle.SetFont(font);
+            cell.CellStyle = dqCellStyle;
+
+            //合并第一行的第1列到第3列
+            CellRangeAddress cellRangeAddress = new CellRangeAddress(0, 0, 0, 2);
+            sheet.AddMergedRegion(cellRangeAddress);
+
+            row = sheet.CreateRow(1);
+            cell = row.CreateCell(3);
+            cell.SetCellValue("合并第二行到第三行的第4列到第5列");
+            cell.CellStyle = dqCellStyle;
+            //合并第二行到第三行的第4列到第8列
+            CellRangeAddress cellRangeAddress2 = new CellRangeAddress(1, 2, 3, 7);
+            sheet.AddMergedRegion(cellRangeAddress2);
+
+            FileStream fileStream = new FileStream(Path.Combine(excelFileTesDirPath, "TestCreateMergeRegion.xlsx"), FileMode.Create);
+            workbook.Write(fileStream);
+            fileStream.Close();
+            workbook.Close();
         }
 
         [TestMethod]
@@ -196,27 +227,62 @@ namespace UnitTestProject_NPOI
         }
 
         [TestMethod]
-        public void TestExportExcelTemplate()
+        public void TestExportExcelTemplateForMVC()
         {
+            //System.IO.FileStream file = new System.IO.FileStream(base.Server.MapPath("~/Areas/TendaOA_FIN/Templates/2018年损益科目清单及核算场景.xlsx"), System.IO.FileMode.Open, System.IO.FileAccess.Read);
+            //int length = (int)file.Length;
+            //byte[] data = new byte[length];
+            //file.Position = 0;
+            //file.Read(data, 0, length);
+            //file.Close();
+            //return this.File(data, "application/vnd.ms-excel", "2018年损益科目清单及核算场景.xlsx");
         }
 
         [TestMethod]
         public void TestExportContentToExcel()
         {
+            //数据源DataTable
+            DataTable dt = new DataTable();
+            dt.Columns.AddRange(new DataColumn[] { new DataColumn("Student", typeof(string)),
+                                                new DataColumn("Course1", typeof(int)),
+                                                new DataColumn("Course2", typeof(int)),
+                                                new DataColumn("Course3", typeof(int)),
+                                                new DataColumn("CourseSum", typeof(int)) });
+            dt.Rows.Add("001", 11, 11, 11);
+            dt.Rows.Add("002", 11, 22, 11);
+            dt.Rows.Add("003", 11, 22, 11);
+            dt.Rows.Add("004", 11, 22, 11);
+            dt.Rows.Add("005", 11, 22, 11);
+            dt.Rows.Add("006", 11, 22, 11);
+            //读取模板
+            FileStream file = new FileStream(Path.Combine(excelFileTesDirPath, "TestExportContentToExcelTemplate.xlsx"), FileMode.Open, FileAccess.Read);
+            //填充内容 先根据模板文件流 生成Excel
+            XSSFWorkbook workbook = new XSSFWorkbook(file);
+            ISheet sheet = workbook.GetSheet("Sheet1");
+            IRow row = null;
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                row = sheet.CreateRow(i + 1);
+                row.CreateCell(0).SetCellValue(dt.Rows[i]["Student"].ToString());
+                row.CreateCell(1).SetCellValue(Convert.ToInt32(dt.Rows[i]["Course1"]));
+                row.CreateCell(2).SetCellValue(Convert.ToInt32(dt.Rows[i]["Course2"]));
+                row.CreateCell(3).SetCellValue(Convert.ToInt32(dt.Rows[i]["Course3"]));
+            }
+            //打开时强制执行原有公式 有问题！！！
+            sheet.ForceFormulaRecalculation = true;
+            //生成新Excel
+            FileStream newFileStream = new FileStream(Path.Combine(excelFileTesDirPath, "TestExportContentToExcel.xlsx"), FileMode.Create);
+            workbook.Write(newFileStream);
+            newFileStream.Close();
+            file.Close();
         }
 
         [TestMethod]
         public void TestImportExcelToContent()
         {
+            //读取Excel
+            FileStream file = new FileStream(Path.Combine(excelFileTesDirPath, "TestExportContentToExcelTemplate.xlsx"), FileMode.Open, FileAccess.Read);
         }
-
-
-
-        [TestMethod]
-        public void TestMethod1()
-        {
-        }
-
 
     }
 }
